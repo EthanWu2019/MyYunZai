@@ -1,6 +1,6 @@
 # 海绵酱控制台 (YunZai APP)
 
-**GitHub**: [github.com/EthanWu2019/MyYunZai](https://github.com/EthanWu2019/MyYunZai)
+**📦 下载**: [GitHub v0.4.2 release](https://github.com/EthanWu2019/MyYunZai/releases/tag/v0.4.2)
 
 把 **HYZL 启动器 + Redis + TRSS Yunzai 后端 + NapCat 协议端 + WebUI 扫码** 整合到一个 Tauri 2 桌面应用。
 
