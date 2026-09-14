@@ -1,7 +1,7 @@
 // Yunzai 终端风格日志面板 - 黑色 + 彩色 + 自动滚 + 搜索 + 清空
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, Search, ScrollText, Filter } from "lucide-react";
+import { Search, ScrollText } from "lucide-react";
 import type { LogEvent } from "../lib/events";
 
 interface Props {
@@ -22,7 +22,7 @@ const LOG_LINE_COLOR_REGEX = [
   { pattern: /\b(SUCCESS|✓|成功|完成)\b/g, className: "text-good" },
 ];
 
-export default function LogPanel({ logs, source = "all" }: Props) {
+export default function LogPanel({ logs }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"all" | "yunzai" | "napcat">(

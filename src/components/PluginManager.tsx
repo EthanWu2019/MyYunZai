@@ -2,13 +2,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Download,
-  Trash2,
   Loader2,
   CheckCircle2,
-  XCircle,
   Circle,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { api, type PluginInfo } from "../lib/tauri";
 

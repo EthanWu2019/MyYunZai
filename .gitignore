@@ -21,6 +21,9 @@ src-tauri/target/
 src-tauri/Cargo.lock
 *.tsbuildinfo
 
+# Tauri embedded resources (downloaded by setup wizard from GitHub Releases instead)
+src-tauri/resources/NapCat.Shell.zip
+
 # OS
 Thumbs.db
 desktop.ini

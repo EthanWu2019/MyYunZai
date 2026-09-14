@@ -118,34 +118,74 @@ pub struct SetupVerification {
 }
 
 /// 从 Tauri embedded resource 释放 NapCat.zip 到目标目录
-/// 这是 build time 通过 tauri.conf.json resources 配置打包进去的
+/// NapCat.Shell.zip 不在 git 里 — 第一次启动时从 GitHub Releases 下载到
+/// %APPDATA%/com.ethanwu.yunzai/cache/NapCat.Shell.zip 缓存
 pub fn extract_embedded_napcat(target_dir: &str) -> Result<()> {
     let target = PathBuf::from(target_dir);
-    if target.join("launcher.bat").exists() {
+    if target.join("launcher.bat").exists() || target.join("NapCatWinBootMain.exe").exists() {
         // 已存在,跳过
         return Ok(());
     }
     std::fs::create_dir_all(&target).context("创建 NapCat 目录失败")?;
 
-    // 找 embedded resource: 由 build.rs / tauri.conf.json 决定路径
-    // 我们用相对路径 src-tauri/resources/NapCat.Shell.zip
-    // 但运行时 exe 在 target/release/, 路径会变. 所以用 std::env::current_exe()
-    let exe_dir = std::env::current_exe()?.parent().map(|p| p.to_path_buf());
-    let candidates: Vec<PathBuf> = vec![
-        // 开发模式: cargo run 从 src-tauri/target/debug/
-        PathBuf::from("resources/NapCat.Shell.zip"),
-        // release MSI 安装后: 资源应该在 exe 同目录 (Tauri resources 释放位置)
-        exe_dir.clone().map(|d| d.join("resources/NapCat.Shell.zip")).unwrap_or_default(),
-        exe_dir.clone().map(|d| d.join("NapCat.Shell.zip")).unwrap_or_default(),
-    ];
-
-    let zip_path = candidates
-        .iter()
-        .find(|p| p.exists())
-        .ok_or_else(|| anyhow!("找不到 embedded NapCat.Shell.zip (尝试: {:?})", candidates))?;
+    // 1. 找本地缓存 (上次 setup 时下载的)
+    let cache_zip = local_cache_napcat_zip();
+    let zip_path = if cache_zip.exists() {
+        cache_zip
+    } else {
+        // 2. 没缓存就下载
+        download_napcat_zip(&cache_zip)?
+    };
 
     extract_zip(&zip_path, &target)?;
     Ok(())
+}
+
+/// 本地缓存路径: %APPDATA%/com.ethanwu.yunzai/cache/NapCat.Shell.zip
+fn local_cache_napcat_zip() -> PathBuf {
+    let appdata = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    appdata
+        .join("com.ethanwu.yunzai")
+        .join("cache")
+        .join("NapCat.Shell.zip")
+}
+
+/// 从 GitHub Releases 下载最新 NapCat.Shell.zip 到缓存路径
+fn download_napcat_zip(target: &Path) -> Result<PathBuf> {
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent).ok();
+    }
+    let url = "https://github.com/NapNeko/NapCatQQ/releases/latest/download/NapCat.Shell.zip";
+    log::info!("下载 NapCat: {} -> {}", url, target.display());
+
+    let tmp = std::env::temp_dir().join("NapCat.Shell.zip");
+    let ps_cmd = format!(
+        "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '{}' -OutFile '{}' -UseBasicParsing",
+        url,
+        tmp.display()
+    );
+    let mut ps = std::process::Command::new("powershell");
+    ps.args(["-NoProfile", "-Command", &ps_cmd])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        ps.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let output = ps.output().context("下载 NapCat 失败")?;
+    if !output.status.success() {
+        return Err(anyhow!(
+            "NapCat 下载失败: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    std::fs::copy(&tmp, target).context("复制 NapCat 到缓存失败")?;
+    let _ = std::fs::remove_file(&tmp);
+    Ok(target.to_path_buf())
 }
 
 /// 用 std 解压 zip (避免引入 zip crate)
