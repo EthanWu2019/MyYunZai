@@ -6,6 +6,28 @@
 
 不再需要分别打开 HYZL.exe / launcher.bat / Edge 浏览器 —— 一个 App 全搞定。
 
+## ⚠️ 重要：本 App 不是 Yunzai 全量包
+
+**这是 launcher/console，不是 Yunzai 本身。**
+
+主人每次只装一个 4.5 MB MSI / 5 MB DMG，就能控制整个 Yunzai 机器人，但**机器上必须先有**：
+- TRSS Yunzai 后端 (`Yunzai-Bot/`)
+- NapCat 协议端
+- Redis
+- Node.js（Yunzai 用）
+- QQ 客户端（NapCat 注入用）
+
+**为啥不打包 Yunzai 进去？**：
+- Yunzai + 全部插件 = **3-5 GB**（node_modules + oicq + plugins + data）
+- 主人已有装好的（HYZL.exe 那一套）
+- 每个用户机器路径不同，打包一份给所有人用不现实
+- Launcher 模式：跟你的 HYZL.exe 一样的思路（HYZL 也不是 Yunzai 本身）
+
+**全量包适合**：自己写一个新机器人部署脚本 → 自己机器 OK
+**Launcher 适合**：已有机器的快速控制 → 我的设计
+
+如果要"全量打包给朋友用"，需要另写 `yunzai-full-pack` 工程（npm + oicq + 全部插件 + redis 源 + QQ 装脚本），不在本 repo 范围。
+
 ## ⚠️ 隐私与数据声明
 
 **本项目不包含任何用户敏感信息**：
