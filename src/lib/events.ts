@@ -1,6 +1,6 @@
 // 全局事件类型
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import type { StatusSnapshot } from "./tauri";
+import type { StatusSnapshot, SetupProgress } from "./tauri";
 
 export interface LogEvent {
   source: string;
@@ -21,6 +21,22 @@ export async function onStatus(listener: StatusListener): Promise<UnlistenFn> {
 
 export async function onStartOk(listener: () => void): Promise<UnlistenFn> {
   return listen("start:ok", () => listener());
+}
+
+export async function onSetupProgress(
+  listener: (progress: SetupProgress) => void,
+): Promise<UnlistenFn> {
+  return listen<SetupProgress>("setup:progress", (e) => listener(e.payload));
+}
+
+export async function onSetupComplete(listener: () => void): Promise<UnlistenFn> {
+  return listen("setup:complete", () => listener());
+}
+
+export async function onSetupFailed(
+  listener: (msg: string) => void,
+): Promise<UnlistenFn> {
+  return listen<string>("setup:failed", (e) => listener(e.payload));
 }
 
 export async function onStartFailed(

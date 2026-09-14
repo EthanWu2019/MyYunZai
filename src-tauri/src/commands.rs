@@ -1,6 +1,8 @@
 // Tauri IPC commands: 暴露给前端调用
 
 use crate::config::{AppConfig, AppPaths, AppSettings};
+use crate::plugin_index::{owner_installed_plugins, PluginInfo};
+use crate::setup::run_full_setup;
 use crate::state::StatusSnapshot;
 use crate::AppState;
 use std::path::PathBuf;
@@ -149,3 +151,26 @@ pub fn quit_app(app: AppHandle) {
 // AppState 字段都是 Arc<Mutex<...>>,自动 Send + Sync (无需 unsafe impl)
 unsafe impl Send for AppState {}
 unsafe impl Sync for AppState {}
+
+#[tauri::command]
+pub fn run_setup(
+    app: AppHandle,
+    paths: AppPaths,
+    selected_plugins: Vec<String>,
+) -> Result<(), String> {
+    let app_clone = app.clone();
+    std::thread::spawn(move || {
+        if let Err(e) = run_full_setup(app_clone.clone(), paths, selected_plugins) {
+            log::error!("setup 失败: {e:?}");
+            let _ = app_clone.emit("setup:failed", e.to_string());
+        } else {
+            let _ = app_clone.emit("setup:complete", ());
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_available_plugins() -> Vec<PluginInfo> {
+    owner_installed_plugins()
+}

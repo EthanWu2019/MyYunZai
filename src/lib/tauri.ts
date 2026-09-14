@@ -39,6 +39,31 @@ export interface StatusSnapshot {
   timestamp: number;
 }
 
+export interface SetupProgress {
+  current_step: number;
+  total_steps: number;
+  steps: SetupStep[];
+  overall_status: 'Pending' | 'Running' | 'Completed' | 'Failed' | 'Skipped';
+  error_message?: string;
+}
+
+export interface SetupStep {
+  id: string;
+  name: string;
+  status: 'Pending' | 'Running' | 'Completed' | 'Failed' | 'Skipped';
+  progress: number;
+  message: string;
+}
+
+export interface PluginInfo {
+  name: string;
+  author: string;
+  repo_url: string;
+  category: 'Framework' | 'Featured' | 'Function' | 'Game' | 'WordGame' | 'JsPlugin';
+  description: string;
+  recommended: boolean;
+}
+
 export const api = {
   getConfig: () => invoke<AppConfig>("get_config"),
   updatePaths: (
@@ -56,4 +81,7 @@ export const api = {
   setAutostart: (enable: boolean) => invoke<void>("set_autostart", { enable }),
   minimizeToTray: () => invoke<void>("minimize_to_tray"),
   quitApp: () => invoke<void>("quit_app"),
+  runSetup: (paths: AppPaths, selectedPlugins: string[]) =>
+    invoke<void>("run_setup", { paths, selectedPlugins }),
+  getAvailablePlugins: () => invoke<PluginInfo[]>("get_available_plugins"),
 };

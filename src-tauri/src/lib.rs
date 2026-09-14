@@ -3,8 +3,10 @@
 mod commands;
 mod config;
 mod log_stream;
+mod plugin_index;
 mod process;
 mod service;
+mod setup;
 mod state;
 
 use tauri::{
@@ -58,6 +60,8 @@ pub fn run() {
             commands::set_autostart,
             commands::minimize_to_tray,
             commands::quit_app,
+            commands::run_setup,
+            commands::get_available_plugins,
         ])
         .setup(|app| {
             // 加载配置 (从 %APPDATA%/com.ethanwu.yunzai/config.json)

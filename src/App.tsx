@@ -29,6 +29,7 @@ import StatusCard from "./components/StatusCard";
 import LogPanel from "./components/LogPanel";
 import SettingsModal from "./components/SettingsModal";
 import NapcatWebview from "./components/NapcatWebview";
+import FirstRunWizard from "./components/FirstRunWizard";
 
 const DEFAULT_SNAPSHOT: StatusSnapshot = {
   redis: { running: false, pid: null },
@@ -50,6 +51,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"overview" | "webview">(
     "overview",
   );
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
 
   // 初始加载
   useEffect(() => {
@@ -59,6 +61,13 @@ export default function App() {
         setConfig(cfg);
         const s = await api.getStatus();
         setStatus(s);
+        // 检测是否需要 First-Run Wizard
+        // 简单启发: 如果 Yunzai 目录没有 app.js → 需要 setup
+        // (更稳: 检查 marker 文件)
+        const yunzaiAppJs = cfg.paths.yunzai_dir + "\\app.js";
+        const needs =
+          !yunzaiAppJs || yunzaiAppJs.includes("<USERNAME>");
+        setNeedsSetup(needs);
       } catch (e) {
         setError(`初始化失败: ${e}`);
       }
@@ -124,6 +133,18 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col bg-transparent text-zinc-100">
+      {/* First-Run Wizard 优先显示 */}
+      {needsSetup && config && (
+        <FirstRunWizard
+          paths={config.paths}
+          onComplete={() => {
+            setNeedsSetup(false);
+            // 重新加载 config
+            void api.getConfig().then(setConfig);
+            void api.getStatus().then(setStatus);
+          }}
+        />
+      )}
       {/* Header */}
       <header className="glass border-b border-white/5 px-6 py-3 flex items-center justify-between drag-region">
         <div className="flex items-center gap-3">
