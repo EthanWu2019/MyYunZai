@@ -11,6 +11,9 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@v4
 
@@ -18,73 +21,62 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo config (rust-lld workaround)
+      - name: Show toolchain info
         run: |
-          New-Item -ItemType Directory -Force -Path .cargo
-          @'
-          [target.x86_64-pc-windows-msvc]
-          linker = "rust-lld.exe"
-          rustflags = ["-C", "link-arg=/LIBPATH:C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x64", "-C", "link-arg=/LIBPATH:C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x64"]
-          [net]
-          git-fetch-with-cli = true
-          '@ | Out-File -Encoding UTF8 .cargo/config.toml
+          node --version
+          npm --version
+          rustc --version
+          cargo --version
+          "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products '*' -requires Microsoft.VisualCpp.Tools.HostX64.TargetX64 -property installationPath
 
-      - name: Cache cargo registry
+      - name: Cache cargo
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
+            ~\AppData\Local\cargo\registry
+            ~\AppData\Local\cargo\git
+            src-tauri\target
           key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.toml', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ''
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+      - name: Build Tauri
         run: npm run tauri build
 
-      - name: List build artifacts
-        shell: pwsh
+      - name: List artifacts
+        if: always()
         run: |
-          Get-ChildItem -Path src-tauri/target/release/bundle -Recurse -File |
-            Where-Object { $_.Extension -in '.msi', '.exe' } |
-            Select-Object FullName, Length | Format-Table -AutoSize
+          if (Test-Path src-tauri/target/release/bundle) {
+            Get-ChildItem -Path src-tauri/target/release/bundle -Recurse -File |
+              Where-Object { $_.Extension -in '.msi', '.exe' } |
+              Select-Object FullName, Length | Format-Table -AutoSize
+          } else {
+            Write-Error 'No bundle dir found'
+            exit 1
+          }
 
-      - name: Upload artifacts
+      - name: Upload artifacts to release
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           name: 'YunZaiConsole v${{ github.ref_name }}'
           body: |
             Tauri 2 desktop console for TRSS Yunzai + NapCat + Redis.
 
-            **Features**:
-            - Single-instance + tray icon + close-to-tray
-            - Strict startup order: Redis -> Yunzai (nvm node) -> NapCat
-            - Close order: kill Yunzai + NapCat, **keep Redis**
-            - Embedded WebUI iframe for QR scan
-            - Real-time log tail (yunzai/napcat logs)
-            - Settings panel for paths + behavior
+            **Features**: Single-instance + tray + close-to-tray, strict startup order
+            (Redis -> Yunzai -> NapCat), keep Redis on close, embedded WebUI iframe,
+            real-time log tail, settings panel.
 
             **Privacy**: No user data uploaded. Default paths use `<USERNAME>` placeholder.
 
-            **Install**:
-            - **MSI** (recommended): install to Program Files
-            - **NSIS exe**: portable installer
-
-            **First run**:
-            1. Start app
-            2. Click "Settings" -> update paths to your real install locations
-            3. Restart app
-            4. Status cards should turn green if your bot is already running
+            **Install**: MSI (recommended) or NSIS exe.
           draft: false
           prerelease: false
           files: |
