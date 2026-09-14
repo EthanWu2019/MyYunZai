@@ -69,17 +69,15 @@ NapCat 自己的终端会弹一个二维码 —— **那是无效的,不要扫**
 
 SSH service session 0 跑 `vs_setup.exe --quiet --wait` 会**假成功退出**，实际永远卡在 "Preparing" 阶段。CPU 0.4% 死循环。
 
-**正解**：以 SYSTEM 身份用 schtasks 跑：
-```powershell
-$action = New-ScheduledTaskAction -Execute 'C:\Users\34018\AppData\Local\Temp\vs_BuildTools.exe' `
-    -Argument '--quiet --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
-$trig = New-ScheduledTaskTrigger -Once -At (Get-Date).AddSeconds(5)
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
-Register-ScheduledTask -TaskName 'YunZaiVSInstall' -Action $action -Trigger $trig -Settings $settings -RunLevel Highest -Force
-Start-ScheduledTask -TaskName 'YunZaiVSInstall'
-```
+schtasks /rl HIGHEST 也不行（SSH 没桌面 session,vs_setup 立即 background 后退出）。
 
-或者**主人双击** `scripts/install-vs-gui.bat` → 弹 UAC 点"是" → 自动装。
+**正解**：主人在自己电脑面前双击桌面上的 **`安装VSBuildTools.bat`**（已自动放到 C:\Users\34018\Desktop\）：
+- 弹 UAC → 点"是"
+- 自动后台安装 5-15 分钟
+- 装完弹窗"Press Enter to close"
+- 关窗后我会远程检测到 `link.exe` 出现，继续打包
+
+**主人装好 VS 后**：双击桌面 **`打包YunZaiAPP.bat`**，自动跑完所有步骤，产出 `.msi + .exe` 安装包，弹窗打开产物目录。
 
 ## 开发
 
