@@ -1,0 +1,7 @@
+# Cargo target 配置 - 强制使用 rust-lld 替代 MSVC link.exe
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
+rustflags = ["-C", "link-arg=/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\um\\x64", "-C", "link-arg=/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\ucrt\\x64"]
+
+[net]
+git-fetch-with-cli = true

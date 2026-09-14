@@ -6,6 +6,18 @@
 
 不再需要分别打开 HYZL.exe / launcher.bat / Edge 浏览器 —— 一个 App 全搞定。
 
+## ⚠️ 隐私与数据声明
+
+**本项目不包含任何用户敏感信息**：
+- ❌ **不收集/不上传** 任何机器人 token、QQ 账号、Discord token、API key
+- ❌ **不修改** `D:\TRSSYUNZAI\`、`D:\NapCat.Shell\`、`E:\QQ\` 等任何原机器人文件
+- ✅ 配置路径默认是占位符 (`C:\Users\<USERNAME>\...`)，用户首次启动后通过设置面板填写真实路径
+- ✅ 所有配置存在 `%APPDATA%/com.ethanwu.yunzai/config.json`（**用户本地**，不上传 GitHub）
+
+**主人在自己电脑上的使用**：
+1. 第一次启动 App 后点"设置" → 把路径改成你电脑上的真实位置 → 保存
+2. 默认 username 占位符 `<USERNAME>` 会提醒你改成自己的 Windows 用户名（一般是 `34018` 或 `Administrator`）
+
 ## 架构
 
 ```

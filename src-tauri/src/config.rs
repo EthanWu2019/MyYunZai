@@ -23,14 +23,15 @@ pub struct AppPaths {
 
 impl Default for AppPaths {
     fn default() -> Self {
+        // 占位符默认值 - 用户首次启动后通过 UI 修改为真实路径
         Self {
-            redis_exe: r"D:\TRSSYUNZAI\redis-windows-7.0.4\redis-server.exe".into(),
-            redis_conf: r"D:\TRSSYUNZAI\redis-windows-7.0.4\redis.conf".into(),
-            yunzai_dir: r"D:\TRSSYUNZAI\Yunzai-Bot".into(),
-            yunzai_node: r"C:\Users\34018\AppData\Local\nvm\v20.11.1\node.exe".into(),
-            napcat_dir: r"D:\NapCat.Shell".into(),
-            napcat_log_dir: r"D:\NapCat.Shell\napcat\logs".into(),
-            yunzai_log_dir: r"D:\TRSSYUNZAI\Yunzai-Bot\logs".into(),
+            redis_exe: r"C:\TRSSYUNZAI\redis-windows-7.0.4\redis-server.exe".into(),
+            redis_conf: r"C:\TRSSYUNZAI\redis-windows-7.0.4\redis.conf".into(),
+            yunzai_dir: r"C:\TRSSYUNZAI\Yunzai-Bot".into(),
+            yunzai_node: r"C:\Users\<USERNAME>\AppData\Local\nvm\v20.11.1\node.exe".into(),
+            napcat_dir: r"C:\NapCat.Shell".into(),
+            napcat_log_dir: r"C:\NapCat.Shell\napcat\logs".into(),
+            yunzai_log_dir: r"C:\TRSSYUNZAI\Yunzai-Bot\logs".into(),
         }
     }
 }

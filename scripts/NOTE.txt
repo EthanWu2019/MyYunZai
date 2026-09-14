@@ -1,0 +1,7 @@
+# cargo config for GNU target
+# 文件位置: E:\YunZai_APP\.cargo\config.toml (项目级)
+# 内容:
+# target = "x86_64-pc-windows-gnu"
+# linker = "rust-lld.exe"
+
+# 但是项目级 config 在 src-tauri/.cargo/config.toml
