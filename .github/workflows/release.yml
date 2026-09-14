@@ -47,40 +47,30 @@ jobs:
 
       - name: Verify artifacts
         run: |
-          $msi = Get-ChildItem -Path src-tauri/target/release/bundle/msi -Filter '*.msi' -EA SilentlyContinue
-          $nsis = Get-ChildItem -Path src-tauri/target/release/bundle/nsis -Filter '*.exe' -EA SilentlyContinue
+          $msi = Get-ChildItem -Path src-tauri\target\release\bundle\msi -Filter '*.msi' -EA SilentlyContinue
+          $nsis = Get-ChildItem -Path src-tauri\target\release\bundle\nsis -Filter '*.exe' -EA SilentlyContinue
           if (-not $msi -or -not $nsis) { Write-Error "Missing Windows artifacts"; exit 1 }
           Write-Output "MSI: $($msi[0].FullName) ($($msi[0].Length) bytes)"
           Write-Output "NSIS: $($nsis[0].FullName) ($($nsis[0].Length) bytes)"
 
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: YunZaiConsole-windows
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
+      - name: Prepare artifacts directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          Copy-Item src-tauri\target\release\bundle\msi\*.msi artifacts\
+          Copy-Item src-tauri\target\release\bundle\nsis\*.exe artifacts\
+          Get-ChildItem artifacts | Format-Table Name,Length -AutoSize
 
-  release:
-    needs: build-windows
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+      - name: Create or update Release with assets
+        uses: ncipollo/release-action@v1
         with:
-          path: artifacts
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
+          tag: ${{ github.ref_name }}
           name: 'YunZaiConsole v${{ github.ref_name }}'
           body: |
             Tauri 2 desktop console for TRSS Yunzai + NapCat + Redis.
 
             **Major feature: First-Run Wizard (yunzai one-click deployment)**
-            - Downloads Yunzai + NapCat + 23 plugins + npm deps (~1-3 GB)
+            - Downloads Yunzai + NapCat + 23 plugins + npm deps (~1-3 GB total setup)
             - Default install path: `C:\YunZaiApp\`
             - All 23 of owner's gaming laptop plugins pre-selected
             - Setup completes in 5-30 minutes depending on network
@@ -89,15 +79,20 @@ jobs:
             - 4 status cards show Redis / Yunzai / NapCat / QQ
             - "Start All" launches in strict order (Redis -> Yunzai -> NapCat)
             - "Stop" keeps Redis running
+            - "Restart" cycles bot
+            - Plugins tab: install / remove any of 23 curated plugins
+            - Terminal-style log panel with search + source filter
             - WebUI tab embeds `http://localhost:6099/webui/` for QR scan
 
             **Privacy**: No user data uploaded. All config stays local at
             `%APPDATA%/com.ethanwu.yunzai/`.
 
-            **Install**: MSI (recommended) or NSIS exe. Both are self-contained,
-            ~5 MB. Setup downloads the rest on first launch.
+            **Install**: Run the MSI (or NSIS exe). The wizard will guide you through
+            downloading and installing everything else on first launch.
           draft: false
           prerelease: false
-          files: |
-            artifacts/YunZaiConsole-windows/*.msi
-            artifacts/YunZaiConsole-windows/*.exe
+          allowUpdates: true
+          omitNameDuringUpdate: false
+          omitBodyDuringUpdate: false
+          artifacts: 'artifacts/*.msi,artifacts/*.exe'
+          token: ${{ secrets.GITHUB_TOKEN }}
