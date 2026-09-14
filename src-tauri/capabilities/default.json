@@ -1,0 +1,43 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "海绵酱控制台默认权限",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-unminimize",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:app:allow-version",
+    "core:app:allow-name",
+    "core:path:default",
+    "core:resources:default",
+    "core:menu:default",
+    "core:tray:default",
+    "dialog:default",
+    "dialog:allow-open",
+    "opener:default",
+    "opener:allow-open-url",
+    "opener:allow-reveal-item-in-dir",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-exists",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$APPCONFIG/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$HOME/**" },
+        "D:\\**",
+        "E:\\**",
+        "F:\\**"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+[package]
+name = "yunzai-app"
+version = "0.1.0"
+description = "TRSS Yunzai + NapCat unified desktop console"
+authors = ["Ethan Wu"]
+edition = "2021"
+rust-version = "1.77"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "yunzai_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-autostart = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# 进程检测 / 杀进程
+sysinfo = "0.31"
+
+# 异步运行时 + 文件监听
+tokio = { version = "1", features = ["full"] }
+notify = "6"
+notify-debouncer-full = "0.3"
+
+# 日志
+log = "0.4"
+env_logger = "0.11"
+
+# Windows API（ShellExecuteW 用于以管理员权限启动 NapCat）
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+# 跨平台目录
+dirs = "5"
+
+# 时间格式化
+chrono = { version = "0.4", features = ["serde"] }
+
+anyhow = "1"
+parking_lot = "0.12"
+once_cell = "1"
+
+[features]
+# 默认开启，生产环境 release 关掉
+custom-protocol = ["tauri/custom-protocol"]
