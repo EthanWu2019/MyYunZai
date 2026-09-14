@@ -1,0 +1,45 @@
+# Release workflow - 自动在 git tag 推送时创建 GitHub Release
+# 由于 GitHub PAT 已过期, workflow 用默认 GITHUB_TOKEN (Actions 提供的)
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: YunZaiConsole v${{ steps.version.outputs.VERSION }}
+          body: |
+            Tauri 2 desktop console for TRSS Yunzai + NapCat + Redis.
+
+            **Note**: This workflow creates releases but does NOT build Windows installers
+            (no Windows runner available). Pre-built v0.1.0 MSI/NSIS are on owner's desktop.
+
+            **Build locally**:
+            ```bash
+            # Prereqs: Rust 1.98+, Node 20+, Windows SDK 10.0.19041
+            cd src-tauri && cargo fetch && cd ..
+            npm install && npm run tauri build
+            ```
+          draft: false
+          prerelease: false
+          # Manually upload assets (owner already has them on desktop)
+          # files: |
+          #   src-tauri/target/release/bundle/msi/*.msi
+          #   src-tauri/target/release/bundle/nsis/*-setup.exe
