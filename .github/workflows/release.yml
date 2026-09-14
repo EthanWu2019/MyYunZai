@@ -39,9 +39,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Tauri
+      - name: Build Tauri (Windows)
         env:
-          # Disable code signing for unsigned release builds
           TAURI_SIGNING_PRIVATE_KEY: ''
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: npm run tauri build
@@ -50,30 +49,55 @@ jobs:
         run: |
           $msi = Get-ChildItem -Path src-tauri/target/release/bundle/msi -Filter '*.msi' -EA SilentlyContinue
           $nsis = Get-ChildItem -Path src-tauri/target/release/bundle/nsis -Filter '*.exe' -EA SilentlyContinue
-          if (-not $msi -or -not $nsis) {
-            Write-Error "Missing artifacts: MSI=$($msi.Count) NSIS=$($nsis.Count)"
-            exit 1
-          }
+          if (-not $msi -or -not $nsis) { Write-Error "Missing Windows artifacts"; exit 1 }
           Write-Output "MSI: $($msi[0].FullName) ($($msi[0].Length) bytes)"
           Write-Output "NSIS: $($nsis[0].FullName) ($($nsis[0].Length) bytes)"
 
-      - name: Upload to Release
-        if: success()
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: YunZaiConsole-windows
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+
+  release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: 'YunZaiConsole v${{ github.ref_name }}'
           body: |
             Tauri 2 desktop console for TRSS Yunzai + NapCat + Redis.
 
-            **Features**: Single-instance + tray + close-to-tray, strict startup order
-            (Redis -> Yunzai -> NapCat), keep Redis on close, embedded WebUI iframe,
-            real-time log tail, settings panel.
+            **Major feature: First-Run Wizard (yunzai one-click deployment)**
+            - Downloads Yunzai + NapCat + 23 plugins + npm deps (~1-3 GB)
+            - Default install path: `C:\YunZaiApp\`
+            - All 23 of owner's gaming laptop plugins pre-selected
+            - Setup completes in 5-30 minutes depending on network
 
-            **Privacy**: No user data uploaded. Default paths use `<USERNAME>` placeholder.
+            **After setup completes**:
+            - 4 status cards show Redis / Yunzai / NapCat / QQ
+            - "Start All" launches in strict order (Redis -> Yunzai -> NapCat)
+            - "Stop" keeps Redis running
+            - WebUI tab embeds `http://localhost:6099/webui/` for QR scan
 
-            **Install**: MSI (recommended) or NSIS exe.
+            **Privacy**: No user data uploaded. All config stays local at
+            `%APPDATA%/com.ethanwu.yunzai/`.
+
+            **Install**: MSI (recommended) or NSIS exe. Both are self-contained,
+            ~5 MB. Setup downloads the rest on first launch.
           draft: false
           prerelease: false
           files: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
+            artifacts/YunZaiConsole-windows/*.msi
+            artifacts/YunZaiConsole-windows/*.exe
