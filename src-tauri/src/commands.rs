@@ -1,5 +1,6 @@
 // Tauri IPC commands: 暴露给前端调用
 
+use crate::bootstrap::{extract_embedded_napcat, qq_recommendation, verify_setup, QqRecommendation, SetupVerification};
 use crate::config::{AppConfig, AppPaths, AppSettings};
 use crate::plugin_index::{owner_installed_plugins, PluginInfo};
 use crate::setup::run_full_setup;
@@ -173,4 +174,40 @@ pub fn run_setup(
 #[tauri::command]
 pub fn get_available_plugins() -> Vec<PluginInfo> {
     owner_installed_plugins()
+}
+
+#[tauri::command]
+pub fn check_setup_status(install_root: String) -> SetupVerification {
+    crate::bootstrap::verify_setup(&install_root)
+}
+
+#[tauri::command]
+pub fn extract_embedded_napcat_cmd(target_dir: String) -> Result<(), String> {
+    crate::bootstrap::extract_embedded_napcat(&target_dir).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_qq_recommendation() -> QqRecommendation {
+    qq_recommendation()
+}
+
+#[tauri::command]
+pub fn install_plugin(app: AppHandle, plugin_name: String, install_root: String) -> Result<(), String> {
+    let app_clone = app.clone();
+    std::thread::spawn(move || {
+        match crate::setup::install_single_plugin(&app_clone, &plugin_name, &install_root) {
+            Ok(_) => {
+                let _ = app_clone.emit("plugin:installed", plugin_name);
+            }
+            Err(e) => {
+                let _ = app_clone.emit("plugin:install_failed", e.to_string());
+            }
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_plugin(install_root: String, plugin_name: String) -> Result<(), String> {
+    crate::setup::remove_single_plugin(&install_root, &plugin_name).map_err(|e| e.to_string())
 }

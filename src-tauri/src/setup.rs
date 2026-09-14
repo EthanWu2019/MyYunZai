@@ -3,8 +3,11 @@ use crate::config::AppPaths;
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter};
+
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 
 /// Setup 步骤状态 (发给前端)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,23 +131,30 @@ pub fn run_full_setup(
     progress.steps[2].status = StepStatus::Completed;
     let _ = app.emit("setup:progress", &progress);
 
-    // Step 4: Clone NapCat (Windows)
+    // Step 4: 释放 NapCat (从 embedded 资源,不下载)
     progress.steps[3].status = StepStatus::Running;
     let _ = app.emit("setup:progress", &progress);
-    // Windows 下 NapCat 用 .zip 包 (v4 系列); 实际下载地址
-    download_and_extract(
-        "https://github.com/NapNeko/NapCatQQ/releases/latest/download/NapCat.Shell.Windows.zip",
-        &format!("{}/NapCat", install_dir),
-        &mut progress.steps[3],
-    )?;
-    progress.steps[3].status = StepStatus::Completed;
+    match crate::bootstrap::extract_embedded_napcat(&format!("{}/NapCat", install_dir)) {
+        Ok(_) => {
+            progress.steps[3].message = format!("✓ NapCat 已释放到: {}/NapCat", install_dir);
+            progress.steps[3].status = StepStatus::Completed;
+        }
+        Err(e) => {
+            progress.steps[3].message = format!("⚠ NapCat 释放失败: {} (可手动重试)", e);
+            progress.steps[3].status = StepStatus::Failed;
+        }
+    }
     let _ = app.emit("setup:progress", &progress);
 
-    // Step 5: 下载 QQ (Windows 11 内置; 但确保存在)
+    // Step 5: QQ 用户手动装 (推荐 3060 游戏本稳定版)
     progress.steps[4].status = StepStatus::Running;
     let _ = app.emit("setup:progress", &progress);
-    progress.steps[4].message = "Windows 11 自带 QQ,如未安装请打开 Microsoft Store 搜索 QQ".into();
-    progress.steps[4].status = StepStatus::Completed;
+    let qq_rec = crate::bootstrap::qq_recommendation();
+    progress.steps[4].message = format!(
+        "⚠ 请手动安装 QQ: {} (推荐: {} - {})",
+        qq_rec.download_url, qq_rec.version, qq_rec.reason
+    );
+    progress.steps[4].status = StepStatus::Skipped;  // 用户操作
     let _ = app.emit("setup:progress", &progress);
 
     // Step 6: Yunzai npm install
@@ -233,10 +243,15 @@ fn git_clone(url: &str, target: &str, step: &mut SetupStep) -> Result<()> {
         std::fs::create_dir_all(parent).context("创建父目录失败")?;
     }
 
-    let output = Command::new("git")
-        .args(["clone", "--depth=1", url, target])
-        .output()
-        .context("git clone 失败")?;
+    let mut cmd = Command::new("git");
+    cmd.args(["clone", "--depth=1", url, target])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    cmd.creation_flags(create_no_window());
+
+    let output = cmd.output().context("git clone 失败")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -245,6 +260,15 @@ fn git_clone(url: &str, target: &str, step: &mut SetupStep) -> Result<()> {
 
     step.message = format!("✓ 已下载: {}", target);
     Ok(())
+}
+
+#[cfg(windows)]
+fn create_no_window() -> u32 {
+    0x0800_0000 // CREATE_NO_WINDOW
+}
+#[cfg(not(windows))]
+fn create_no_window() -> u32 {
+    0
 }
 
 fn download_and_extract(url: &str, target: &str, step: &mut SetupStep) -> Result<()> {
@@ -257,12 +281,16 @@ fn download_and_extract(url: &str, target: &str, step: &mut SetupStep) -> Result
         return Ok(());
     }
 
-    // 用 curl 或 reqwest 下载到 TEMP,然后解压到 target
     let tmp_zip = std::env::temp_dir().join("yunzai-setup-download.zip");
-    let output = Command::new("curl")
-        .args(["-L", "-o", tmp_zip.to_str().unwrap(), url])
-        .output()
-        .context("curl 下载失败")?;
+    let mut cmd = Command::new("curl");
+    cmd.args(["-L", "-o", tmp_zip.to_str().unwrap(), url])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    cmd.creation_flags(create_no_window());
+
+    let output = cmd.output().context("curl 下载失败")?;
 
     if !output.status.success() {
         return Err(anyhow!("下载失败: {}", String::from_utf8_lossy(&output.stderr)));
@@ -272,16 +300,20 @@ fn download_and_extract(url: &str, target: &str, step: &mut SetupStep) -> Result
         std::fs::create_dir_all(parent).ok();
     }
 
-    // 解压 (用 PowerShell Expand-Archive)
     let ps_cmd = format!(
         "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
         tmp_zip.display(),
         target_path.display()
     );
-    let output = Command::new("powershell")
-        .args(["-NoProfile", "-Command", &ps_cmd])
-        .output()
-        .context("解压失败")?;
+    let mut ps = Command::new("powershell");
+    ps.args(["-NoProfile", "-Command", &ps_cmd])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    ps.creation_flags(create_no_window());
+
+    let output = ps.output().context("解压失败")?;
 
     if !output.status.success() {
         return Err(anyhow!("解压失败: {}", String::from_utf8_lossy(&output.stderr)));
@@ -295,12 +327,17 @@ fn run_npm_install(dir: &str, step: &mut SetupStep) -> Result<()> {
     step.message = format!("npm install in {}", dir);
     log::info!("{}", step.message);
 
-    let output = Command::new("npm")
-        .arg("install")
+    let mut cmd = Command::new("npm");
+    cmd.arg("install")
         .arg("--registry=https://registry.npmmirror.com")
         .current_dir(dir)
-        .output()
-        .context("npm install 启动失败")?;
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    cmd.creation_flags(create_no_window());
+
+    let output = cmd.output().context("npm install 启动失败")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -336,4 +373,72 @@ fn sanitize_dir_name(name: &str) -> String {
             _ => c,
         })
         .collect()
+}
+
+/// 单插件安装 (供 IPC command `install_plugin` 调用)
+pub fn install_single_plugin(
+    app: &AppHandle,
+    plugin_name: &str,
+    install_root: &str,
+) -> Result<()> {
+    let _ = app;
+    let plugin = crate::plugin_index::owner_installed_plugins()
+        .into_iter()
+        .find(|p| p.name == plugin_name)
+        .ok_or_else(|| anyhow!("未知插件: {}", plugin_name))?;
+
+    let target = format!(
+        "{}/Yunzai-Bot/plugins/{}",
+        install_root,
+        sanitize_dir_name(&plugin.name)
+    );
+
+    if plugin.name == "TRSS-Yunzai (主程序)" {
+        // 主程序已装,跳过
+        return Ok(());
+    }
+
+    let mut step = SetupStep {
+        id: format!("plugin_{}", plugin_name),
+        name: format!("下载插件: {}", plugin_name),
+        status: StepStatus::Running,
+        progress: 0.5,
+        message: format!("git clone {} -> {}", plugin.repo_url, target),
+    };
+    let _ = app.emit(
+        "plugin:progress",
+        serde_json::json!({
+            "plugin": plugin_name,
+            "step": &step,
+        }),
+    );
+
+    git_clone(&plugin.repo_url, &target, &mut step)?;
+    run_npm_install(&target, &mut step)?;
+
+    step.status = StepStatus::Completed;
+    let _ = app.emit(
+        "plugin:progress",
+        serde_json::json!({
+            "plugin": plugin_name,
+            "step": &step,
+        }),
+    );
+    Ok(())
+}
+
+/// 单插件删除 (rm -rf plugins/<name>)
+pub fn remove_single_plugin(install_root: &str, plugin_name: &str) -> Result<()> {
+    let target = format!(
+        "{}/Yunzai-Bot/plugins/{}",
+        install_root,
+        sanitize_dir_name(plugin_name)
+    );
+    let path = PathBuf::from(&target);
+    if !path.exists() {
+        return Err(anyhow!("插件不存在: {}", target));
+    }
+    std::fs::remove_dir_all(&path).context("删除插件目录失败")?;
+    log::info!("✓ 已删除插件: {}", target);
+    Ok(())
 }

@@ -1,6 +1,6 @@
 [package]
 name = "yunzai-app"
-version = "0.1.0"
+version = "0.4.0"
 description = "TRSS Yunzai + NapCat unified desktop console"
 authors = ["Ethan Wu"]
 edition = "2021"

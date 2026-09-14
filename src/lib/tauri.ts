@@ -64,6 +64,26 @@ export interface PluginInfo {
   recommended: boolean;
 }
 
+export interface CheckItem {
+  name: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface SetupVerification {
+  install_root: string;
+  all_ok: boolean;
+  checks: CheckItem[];
+}
+
+export interface QqRecommendation {
+  version: string;
+  reason: string;
+  download_url: string;
+  alternative_url: string;
+  note: string;
+}
+
 export const api = {
   getConfig: () => invoke<AppConfig>("get_config"),
   updatePaths: (
@@ -84,4 +104,13 @@ export const api = {
   runSetup: (paths: AppPaths, selectedPlugins: string[]) =>
     invoke<void>("run_setup", { paths, selectedPlugins }),
   getAvailablePlugins: () => invoke<PluginInfo[]>("get_available_plugins"),
+  checkSetupStatus: (installRoot: string) =>
+    invoke<SetupVerification>("check_setup_status", { installRoot }),
+  extractEmbeddedNapcat: (targetDir: string) =>
+    invoke<void>("extract_embedded_napcat_cmd", { targetDir }),
+  getQqRecommendation: () => invoke<QqRecommendation>("get_qq_recommendation"),
+  installPlugin: (pluginName: string, installRoot: string) =>
+    invoke<void>("install_plugin", { pluginName, installRoot }),
+  removePlugin: (installRoot: string, pluginName: string) =>
+    invoke<void>("remove_plugin", { installRoot, pluginName }),
 };

@@ -1,5 +1,6 @@
 // 核心库入口: Tauri Builder + 单实例 + 托盘 + 关窗拦截 + 状态轮询
 
+mod bootstrap;
 mod commands;
 mod config;
 mod log_stream;
@@ -62,6 +63,11 @@ pub fn run() {
             commands::quit_app,
             commands::run_setup,
             commands::get_available_plugins,
+            commands::check_setup_status,
+            commands::extract_embedded_napcat_cmd,
+            commands::get_qq_recommendation,
+            commands::install_plugin,
+            commands::remove_plugin,
         ])
         .setup(|app| {
             // 加载配置 (从 %APPDATA%/com.ethanwu.yunzai/config.json)
