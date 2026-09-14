@@ -6,27 +6,30 @@
 
 不再需要分别打开 HYZL.exe / launcher.bat / Edge 浏览器 —— 一个 App 全搞定。
 
-## ⚠️ 重要：本 App 不是 Yunzai 全量包
+## ⚠️ 重要：本 App 是 Yunzai 一键部署器
 
-**这是 launcher/console，不是 Yunzai 本身。**
+**安装一次就能让本机变成主人游戏本的同款 Yunzai 控制台。**
 
-主人每次只装一个 4.5 MB MSI / 5 MB DMG，就能控制整个 Yunzai 机器人，但**机器上必须先有**：
-- TRSS Yunzai 后端 (`Yunzai-Bot/`)
-- NapCat 协议端
-- Redis
-- Node.js（Yunzai 用）
-- QQ 客户端（NapCat 注入用）
+下载后双击 MSI/DMG → 启动 App → 首次运行向导：
 
-**为啥不打包 Yunzai 进去？**：
-- Yunzai + 全部插件 = **3-5 GB**（node_modules + oicq + plugins + data）
-- 主人已有装好的（HYZL.exe 那一套）
-- 每个用户机器路径不同，打包一份给所有人用不现实
-- Launcher 模式：跟你的 HYZL.exe 一样的思路（HYZL 也不是 Yunzai 本身）
+1. **检测/安装依赖**：Node.js LTS（nvm）、Git、Redis（自动下载安装包）
+2. **下载 Yunzai 主程序**：TRSS-Yunzai v3（`TimeRainStarSky/Yunzai`）
+3. **下载 NapCat 协议端**（`NapNeko/NapCatQQ`）
+4. **下载插件清单**：`yhArcadia/Yunzai-Bot-plugins-index`（官方插件库）
+5. **用户在 UI 勾选要装的插件**（默认全选主人游戏本的同款 23 个）
+6. **后台批量 git clone + npm install**
+7. **写默认 config**（Redis/qq.yaml/bot.yaml/napcat）
+8. **完成** → 4 个状态卡变绿 + NapCat WebUI 扫码登录
 
-**全量包适合**：自己写一个新机器人部署脚本 → 自己机器 OK
-**Launcher 适合**：已有机器的快速控制 → 我的设计
+**setup 阶段下载量：~1-3 GB**（Yunzai + 23 插件 + npm 依赖）
+**setup 耗时：5-30 分钟**（取决于网速）
+**GUI 本身：~5 MB**
 
-如果要"全量打包给朋友用"，需要另写 `yunzai-full-pack` 工程（npm + oicq + 全部插件 + redis 源 + QQ 装脚本），不在本 repo 范围。
+为什么这样设计：
+- 主人游戏本 = 源 of truth（已经装好的整套）
+- 任何下载者 = 部署一台**同款**机器人（不需要懂命令）
+- 安装时下载所有依赖（"展开基地车"模式）
+- 持续更新：UI 上提供"更新 Yunzai" / "更新插件"按钮（拉 yhArcadia 索引最新）
 
 ## ⚠️ 隐私与数据声明
 
